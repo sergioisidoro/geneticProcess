@@ -228,6 +228,7 @@ class ProcessAssignment  {
 
     }
 
+
     // dumps the given assignment to the screen
     private static void dumpAssignment(Vector< Integer > assignment) {
 	for(int p=0;p<assignment.size();p++)
