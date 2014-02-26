@@ -13,6 +13,7 @@ import java.io.*;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+
 class ProcessAssignment  {
 
     // number of resources (N_R)
@@ -40,7 +41,7 @@ class ProcessAssignment  {
 
     static Vector< Integer > initialAssignment = new Vector< Integer >();
 
-    // helper function for asserting that input values are in correct range
+    // helper function for asserting that input values are in correct 	range
     // and other checks work out
     private static void assertCondition(boolean condition) {
 	if(!condition) {
@@ -228,7 +229,6 @@ class ProcessAssignment  {
 
     }
 
-
     // dumps the given assignment to the screen
     private static void dumpAssignment(Vector< Integer > assignment) {
 	for(int p=0;p<assignment.size();p++)
@@ -242,10 +242,13 @@ class ProcessAssignment  {
 	    System.out.println("java ProcessAssignment <instance_file> <initial_solution_file> <output_file>");
 	} else {
 	    readInstanceFile(args[0]);
-	    dumpProblem();
+	    //dumpProblem();
 	    readInitialAssignment(args[1]);
 	    System.out.println("InitialAssignment: (format: process -> machine)");
 	    dumpAssignment(initialAssignment);
+	    Individual a = new Individual(machineLocations , processServices , 
+	    	initialAssignment, numLocations, numServices, numMachines);
+	    a.dump();
 	}
     }
 }

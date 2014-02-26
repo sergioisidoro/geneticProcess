@@ -1,42 +1,49 @@
 
-import Tree
 
-class Individual {
+import java.util.Vector;
+import java.util.List;
+import java.util.Enumeration;
+
+public class Individual {
 
 	public static class Node {
-        private int id;
+        public int id;
         private Node parent;
         public List<Node> children;
 
         public Node(int id, Node parent) {
             this.id = id;
-            this.parent = parent; 
+            this.parent = parent;
+            this.children = new Vector<Node>();
         }
 
+
         public Node deepClone(Node copyParent) {
-        	newNode = Node(this.id, copyParent);
+        	Node newNode = new Node(this.id, copyParent);
         	for(Node n : children) {
-        		newNode.addChildren(n.deepClone(newNode));
+                n.deepClone(newNode);
+        		newNode.addChildren(n);
         	}
         	return newNode;
         }
 
-        public boolean equals(Object obj) {
-            if (obj == null)
-                return false;
-            if obj.id.equals(this.id)
-                return true;
-            else
-            	return false;
+        public Node searchNode(int a) {
+            for(Node n : this.children) {
+                if (n.id == a);
+                    return n;
+            }
+            return null;    
         }
+
 
         public void addChildren(Node newNode) {
-        	children.add(newNode);
+        	children.add(newNode); 
         }
 
-        public void addChildren(int newChildId) {
-        	newChild = new Child(newChildId, this.root);
-        	children.add(newChild);
+        public Node addChildren(int newChildId) {
+        	Node newChild = new Node(newChildId, this);
+        	this.children.add(newChild);
+            return newChild;
         }
 
         public Node getChild(int childId) {
@@ -47,9 +54,65 @@ class Individual {
         	children.remove(children.indexOf(childId));
         }
 
+        public void dump(int i) {
+            System.out.print("level ");
+            System.out.print(i);
+            System.out.print(" ");
+            System.out.println(id);
+             for(Node n : children) {
+                n.dump(i+1);
+            }
+        }
+
     }
 
+    /* Tree strucutre with Root-Location-Machines-Process levels*/
 	private Node root;
+    private Vector<Node> quickMachineAccess;
+    /*"inverted" tree, with all the process*/
+    public Individual(Vector< Integer > machineLocations , Vector< Integer > processServices , 
+        Vector< Integer > initialAssignment, int numLocations, int numServices, int numMachines) {
+        
+        this.quickMachineAccess = new Vector<Node>(numMachines);
+        this.root = new Node(0, this.root);
 
+        int i = 0;
+        while (i<= numLocations) {
+            Node child = new Node(i, root);
+            root.addChildren(child);
+            i++;    
+        }
+
+        Enumeration<Integer> e= machineLocations.elements();
+        int machineId = 0;
+        while (e.hasMoreElements()) {
+            System.out.print(" WOHOO ");
+            int locationId = (int) e.nextElement();
+            System.out.print(locationId);
+            Node location = root.searchNode(locationId);
+            Node machine = new Node(machineId, location);
+            location.addChildren(machine);
+            quickMachineAccess.add(machineId, machine);
+            machineId++;    
+        }           
+    }
+
+
+    public void dump() {
+
+    }
+
+    public int calculateFit( Vector< Vector<Integer> > machineCapacities, Vector< Vector<Integer> > softMachineCapacities,
+        Vector< Vector<Integer> > processRequirements) {
+        //Check if constraints are met
+
+        totalCost = 
+    }
+
+    public void mutate(Vector< Integer > processMovingCosts) {
+        // To do
+    }
+
+    public void procriate (Vector< Integer > processMovingCosts, Individual partner )
 
 }

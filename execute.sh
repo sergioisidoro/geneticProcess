@@ -2,24 +2,26 @@
 
 echo 'Compiling'
 rm *.class
-javac ProcessAssignment.java
+export CLASSPATH=.
+javac *.java
 
 echo 'Test to run from 1 to 10'
 read test_number
 
-echo 'Run for how long? (minutes)'
-read m
-s = $(($m * 60)) 
-echo " Program will run for max of $m minutes"
-java ProcessAssignment dms_assignment1_small/instance_$test_number.txt dms_assignment1_small/initial_$test_number.txt myResutls/Myresult_$test_number.txt &
+#echo 'Run for how long? (minutes)'
+#read m
+#s = $(($m * 60)) 
+#echo " Program will run for max of $m minutes"
 
-cmdpid = $!
-sleep $s
+time java ProcessAssignment dms_assignment1_small/instance_$test_number.txt dms_assignment1_small/initial_$test_number.txt myResutls/Myresult_$test_number.txt &
 
-if [ -d /proc/$cmdpid ]
-then
-  echo "terminating program PID:$cmdpid"
-  kill $cmdpid
-fi
+#cmdpid = $!
+#sleep $s
+
+#if [ -d /proc/$cmdpid ]
+#then
+#  echo "terminating program PID:$cmdpid"
+#  kill $cmdpid
+#fi
 
 
