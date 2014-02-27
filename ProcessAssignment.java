@@ -246,8 +246,8 @@ class ProcessAssignment  {
 	    readInitialAssignment(args[1]);
 	    System.out.println("InitialAssignment: (format: process -> machine)");
 	    dumpAssignment(initialAssignment);
-	    Individual a = new Individual(machineLocations , processServices , 
-	    	initialAssignment, numLocations, numServices, numMachines);
+	    Individual a = new Individual(machineLocations , processServices ,
+	     numLocations, numServices, numMachines, numProcesses);
 	    a.dump();
 	}
     }

@@ -63,17 +63,19 @@ public class Individual {
                 n.dump(i+1);
             }
         }
-
     }
 
     /* Tree strucutre with Root-Location-Machines-Process levels*/
 	private Node root;
     private Vector<Node> quickMachineAccess;
+    private int changeCost;
+
     /*"inverted" tree, with all the process*/
     public Individual(Vector< Integer > machineLocations , Vector< Integer > processServices , 
-        Vector< Integer > initialAssignment, int numLocations, int numServices, int numMachines) {
-        
+        int numLocations, sint numServices, int numMachines, numProcesses) {
+
         this.quickMachineAccess = new Vector<Node>(numMachines);
+        this.quickProcessAccess = new Vector<Node>(numProcesses)
         this.root = new Node(0, this.root);
 
         int i = 0;
@@ -86,7 +88,6 @@ public class Individual {
         Enumeration<Integer> e= machineLocations.elements();
         int machineId = 0;
         while (e.hasMoreElements()) {
-            System.out.print(" WOHOO ");
             int locationId = (int) e.nextElement();
             System.out.print(locationId);
             Node location = root.searchNode(locationId);
@@ -94,25 +95,38 @@ public class Individual {
             location.addChildren(machine);
             quickMachineAccess.add(machineId, machine);
             machineId++;    
-        }           
+        }
+    }
+
+
+    public void initializer() {
+
     }
 
 
     public void dump() {
-
+        root.dump(0);
     }
 
     public int calculateFit( Vector< Vector<Integer> > machineCapacities, Vector< Vector<Integer> > softMachineCapacities,
         Vector< Vector<Integer> > processRequirements) {
-        //Check if constraints are met
-
-        totalCost = 
+        int totalCost = this.changeCost;
+        return 0;
     }
 
-    public void mutate(Vector< Integer > processMovingCosts) {
+    public void mutate(Vector< Integer > processMovingCosts, int mutationProb) {
         // To do
+        // FOR ALL NODES, SEE IF IT MUTATES
+            // IF MUTATES, PROCESS TO RAND (numberOfMachines)
+                // Update changeCost
     }
 
-    public void procriate (Vector< Integer > processMovingCosts, Individual partner )
+    public void changeGene(int process, int machine) {
+        //Change process from actual machine to specified machine
+        //Update 
+    }
+
+
+    public 
 
 }
