@@ -132,7 +132,7 @@ public class Individual {
         Enumeration<Node> e= quickProcessAccess.elements();
 
         while (e.hasMoreElements()) {
-            val = rand.nextInt(1/mutationProb)==0;
+            val = rand.nextInt(mutationProb)==0;
             if (val == True) {
                 toMachine = rand(numProcesses);
                 this.changeGene(e.id, toMachine);
@@ -154,7 +154,16 @@ public class Individual {
         destinationMachineNode.destinationMachineNode.addChildren(processNode);
     }
 
-    public void uniformlyCrossOver() {
+    public void uniformlyCrossOver(Individual a, Individual b, int probability) {
+        Enumeration<Node> e= quickProcessAccess.elements();
+        while (e.hasMoreElements()) {
+            val = rand.nextInt(probability)==0;
+            if (val == True) {
+                // Exhange genes, and update change cost
+            }
+            else 
+                continue;
+        }
 
     }
 
