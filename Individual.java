@@ -8,23 +8,12 @@ public class Individual {
 
 	public static class Node {
         public int id;
-        private Node parent;
+        public Node parent;
         public List<Node> children;
 
-        public Node(int id, Node parent) {
+        public Node(int id) {
             this.id = id;
-            this.parent = parent;
             this.children = new Vector<Node>();
-        }
-
-
-        public Node deepClone(Node copyParent) {
-        	Node newNode = new Node(this.id, copyParent);
-        	for(Node n : children) {
-                n.deepClone(newNode);
-        		newNode.addChildren(n);
-        	}
-        	return newNode;
         }
 
         public Node searchNode(int a) {
@@ -35,14 +24,15 @@ public class Individual {
             return null;    
         }
 
-
         public void addChildren(Node newNode) {
         	children.add(newNode); 
+            newNode.parent = this;
         }
 
         public Node addChildren(int newChildId) {
         	Node newChild = new Node(newChildId, this);
         	this.children.add(newChild);
+            newChildId.parent = this;
             return newChild;
         }
 
@@ -66,17 +56,23 @@ public class Individual {
     }
 
     /* Tree strucutre with Root-Location-Machines-Process levels*/
-	private Node root;
-    private Vector<Node> quickMachineAccess;
-    private int changeCost;
-    private Random rand; 
+	public Node root;
+    public Vector<Node> quickMachineAccess;
+    public Vector<Node> quickProcessAccess;
+    public int changeCost;
+    public Random rand; 
+    public boolean isViable;
 
     /*"inverted" tree, with all the process*/
+    public Individual () {
+        isViable = false;
+    }
+
     public Individual(Vector< Integer > machineLocations , Vector< Integer > processServices , 
-        int numLocations, sint numServices, int numMachines, numProcesses) {
+        int numLocations, int numServices, int numMachines, int numProcesses) {
 
         this.quickMachineAccess = new Vector<Node>(numMachines);
-        this.quickProcessAccess = new Vector<Node>(numProcesses)
+        this.quickProcessAccess = new Vector<Node>(numProcesses);
         this.root = new Node(0, this.root);
         rand = new Random();
 
@@ -102,36 +98,87 @@ public class Individual {
     }
 
 
-    public void initializer(Vector< Integer > initialAssignment) {
-        // TO DO
+    public void initializer(Vector< Integer > initialAssignment, int numProcesses) {
+        this.isViable = true;
+        int i = 0;
+        while (i < numProcesses) {
+            Node newNode = Node(i);
+            quickProcessAccess.add(i, newNode);
+            quickMachineAccess.get(initialAssignment.get(i)).addChildren(newNode);
+        }
     }
-
 
     public void dump() {
         root.dump(0);
     }
 
-    public int calculateFit( Vector< Vector<Integer> > machineCapacities, Vector< Vector<Integer> > softMachineCapacities,
-        Vector< Vector<Integer> > processRequirements) {
+    public boolean isViable() {
+        return isViable;
+    }
+
+    public int calculateFit( Vector< Vector<Integer> > machineCapacities, 
+                Vector< Vector<Integer> > softMachineCapacities,
+                Vector< Vector<Integer> > processRequirements) {
+
         int totalCost = this.changeCost;
         return 0;
     }
 
-    public void mutate(Vector< Integer > processMovingCosts, int mutationProb) {
-        
-        boolean val = rand.nextInt(1/mutationProb)==0;
-        // To do
-        // FOR ALL NODES, SEE IF IT MUTATES
-            // IF MUTATES, PROCESS TO RAND (numberOfMachines)
-                // Update changeCost
+    public void mutate(Vector<Integer> processMovingCosts, int mutationProb, 
+                Vector<Integer> initialAssignment, int numProcesses) {
+
+        // Mutation is a random change form one machine to anoter.
+        boolean val;
+        Enumeration<Node> e= quickProcessAccess.elements();
+
+        while (e.hasMoreElements()) {
+            val = rand.nextInt(1/mutationProb)==0;
+            if (val == True) {
+                toMachine = rand(numProcesses);
+                this.changeGene(e.id, toMachine);
+                if (toMachine != initialAssignment.get(e.id))
+                    this.changeCost = processMovingCosts.get(e.id);
+                else
+                    this.changeCost = 0;
+            }
+            else 
+                continue;
+        }
     }
 
     public void changeGene(int process, int machine) {
-        //Change process from actual machine to specified machine
-        //Update 
+        Node processNode = quickProcessAccess.get(process);
+        Node destinationMachineNode = quickMachineAccess.get(machine);
+
+        processNode.parent.removeChild(processNode);
+        destinationMachineNode.destinationMachineNode.addChildren(processNode);
     }
 
+    public void uniformlyCrossOver() {
 
-    public 
+    }
 
+    public Individual clone(int numServices, int numMachines) {
+        Node newRoot = new Node(0);
+        Vector<Node>
+        qM = new Vector<Node>(numMachines);
+        qP = new Vector<Node>(numProcesses);
+
+        for(Node location : root.children) {
+            Node locationCopy = new Node(location.id);
+            root.addChildren(locationCopy);
+
+                for(Node server : location.children) {
+                    Node machineCopy = new Node(server.id);
+                    locationCopy.addChildren(machineCopy);
+                    qM.add(machineCopy.id, machineCopy);
+
+                    for(Node proc : server.children) {
+                        Node processCopy = new Node(proc.id);
+                        machineCopy.addChildren(processCopy);
+                        qP.add(processCopy.id, machineCopy);
+                    }
+                }
+            }
+    }
 }
