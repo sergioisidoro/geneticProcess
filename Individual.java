@@ -69,6 +69,7 @@ public class Individual {
 	private Node root;
     private Vector<Node> quickMachineAccess;
     private int changeCost;
+    private Random rand; 
 
     /*"inverted" tree, with all the process*/
     public Individual(Vector< Integer > machineLocations , Vector< Integer > processServices , 
@@ -77,6 +78,7 @@ public class Individual {
         this.quickMachineAccess = new Vector<Node>(numMachines);
         this.quickProcessAccess = new Vector<Node>(numProcesses)
         this.root = new Node(0, this.root);
+        rand = new Random();
 
         int i = 0;
         while (i<= numLocations) {
@@ -89,7 +91,8 @@ public class Individual {
         int machineId = 0;
         while (e.hasMoreElements()) {
             int locationId = (int) e.nextElement();
-            System.out.print(locationId);
+            System.o
+            ut.print(locationId);
             Node location = root.searchNode(locationId);
             Node machine = new Node(machineId, location);
             location.addChildren(machine);
@@ -99,8 +102,8 @@ public class Individual {
     }
 
 
-    public void initializer() {
-
+    public void initializer(Vector< Integer > initialAssignment) {
+        // TO DO
     }
 
 
@@ -115,6 +118,8 @@ public class Individual {
     }
 
     public void mutate(Vector< Integer > processMovingCosts, int mutationProb) {
+        
+        boolean val = rand.nextInt(1/mutationProb)==0;
         // To do
         // FOR ALL NODES, SEE IF IT MUTATES
             // IF MUTATES, PROCESS TO RAND (numberOfMachines)
