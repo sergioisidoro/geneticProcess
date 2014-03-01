@@ -13,7 +13,7 @@ read test_number
 #s = $(($m * 60)) 
 #echo " Program will run for max of $m minutes"
 
-time java ProcessAssignment dms_assignment1_small/instance_$test_number.txt dms_assignment1_small/initial_$test_number.txt myResutls/Myresult_$test_number.txt &
+time java ProcessAssignment dms_assignment1_small/instance_$test_number.txt dms_assignment1_small/initial_$test_number.txt myResutls/Myresult_$test_number.txt 
 
 #cmdpid = $!
 #sleep $s

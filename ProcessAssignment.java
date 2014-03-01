@@ -10,11 +10,18 @@
 
 
 import java.io.*;
-import java.util.StringTokenizer;
-import java.util.Vector;
+import java.util.*;
 
 
 class ProcessAssignment  {
+
+	public static class fitnessComparator implements Comparator<Individual> {
+        public int compare(Individual i1, Individual i2) {
+            if (i1.currentFit < i2.currentFit) return -1;
+            if (i1.currentFit > i2.currentFit) return 1;
+            return 0;
+        }
+    }
 
     // number of resources (N_R)
     static int numResources = 0;
@@ -244,11 +251,123 @@ class ProcessAssignment  {
 	    readInstanceFile(args[0]);
 	    //dumpProblem();
 	    readInitialAssignment(args[1]);
-	    System.out.println("InitialAssignment: (format: process -> machine)");
-	    dumpAssignment(initialAssignment);
-	    Individual a = new Individual(machineLocations , processServices ,
-	     numLocations, numServices, numMachines, numProcesses);
-	    a.dump();
-	}
+	    //System.out.println("InitialAssignment: (format: process -> machine)");
+	    //dumpAssignment(initialAssignment);
+	    
+	    
+	   	// GENETIC ALGORITHM STARTS GERE
+	    
+	    //################ PARAMETERS
+	    int popSize = 10;
+	    int crossOverRate = 5;
+	    int recombinationRate = 1;
+	    int maxPlateu = 1000;
+
+	    Vector<Individual> ecosystem = new Vector<Individual>();
+	    //Cemitery for "recycling individuals"
+	    Vector<Individual> cemitery = new Vector<Individual>();
+
+
+	    // CREATE INDIVIDUAL POOL:
+	    
+
+	    double minFitness;
+
+
+	    Individual proto = new Individual(machineLocations ,processServices , 
+        		numLocations, numServices, numMachines, numProcesses, 
+        		processMovingCosts, initialAssignment, serviceMinSpreads, numResources,
+        		machineCapacities, processRequirements, softMachineCapacities);
+	    proto.firstInit();
+	    minFitness = proto.fitness();
+	    ecosystem.add(0,proto);
+	    System.out.println("Starting Fit:");
+	    System.out.println(minFitness);
+
+
+	    // Adds some genetic changes to the forst assignmet
+
+	    for (int i=1; i<=popSize; i++) {
+	    	Individual a = new Individual(machineLocations ,processServices , 
+        		numLocations, numServices, numMachines, numProcesses, 
+        		processMovingCosts, initialAssignment, serviceMinSpreads, numResources,
+        		machineCapacities, processRequirements, softMachineCapacities);
+	    	
+	    	a.firstInit();
+	    	// Mutations of genes only occur if they are feaseble - Not true mutation, kind of a hack.
+	    	// Mutation occurs with prob 1/numProcesses
+	    	a.mutate(numProcesses);
+	    	ecosystem.add(i,a);
+	    	System.out.println(a.fitness());
+	    	}
+
+	    System.out.println(ecosystem.toString());
+	    Collections.sort(ecosystem, new fitnessComparator());
+	    int plateuCount = 0; //Numbere of times where best result has not been beaten
+	    
+	    Vector<Integer> bestConfiguration = initialAssignment;
+	    boolean converegd = false;
+
+	    boolean val;
+	    Random rand = new Random();
+
+	    System.out.println("STARTING");
+	    for(Individual subject : ecosystem) {
+                //System.out.println(subject.changeCost);
+                System.out.println(subject.fitness());
+            }
+
+
+
+	    int gen = 1;
+	    while (!converegd) {
+	    	// if (ecosystem.get(0).currentFit == 0) {
+	    	// 	System.out.println(ecosystem.get(0).toConfiguration().toString());
+	    	// 	return;
+	    	// }
+
+	    	if (ecosystem.get(0).currentFit < minFitness) {
+	    		minFitness = ecosystem.get(0).currentFit;
+	    		bestConfiguration = ecosystem.get(0).toConfiguration();
+	    		plateuCount = 0;
+	    		System.out.println("New Min Found " + Double.toString(minFitness));
+
+	    	}	else {
+	    		plateuCount++;
+	    		if (plateuCount >= maxPlateu)
+	    			converegd = true;
+	    	}
+
+	    	System.out.println("------------------");
+	    	System.out.println("Generation " + Integer.toString(gen));
+	    	System.out.println(minFitness);
+	    	System.out.println("------------------");
+	    	// SELECTION PHASE
+	    	// replacing the worst fit by the best fit.
+
+	    	Individual weakestLink = ecosystem.get(popSize);
+
+	    	// CROSSING PHASE
+	    	
+	    	for(Individual subject : ecosystem) {
+                val = rand.nextInt(recombinationRate)==0;
+                if (val)
+                	subject.uniformlyCrossOver(ecosystem.get(rand.nextInt(popSize)), crossOverRate);
+            }
+
+	    	// MUTATE
+	    	for(Individual subject : ecosystem) {
+                subject.mutate(numProcesses);
+            }
+
+            Collections.sort(ecosystem, new fitnessComparator());
+            
+            for(Individual subject : ecosystem) {
+                //System.out.println(subject.changeCost);
+                System.out.println(subject.fitness());
+            }
+            gen++;
+	    }
+		}
     }
 }

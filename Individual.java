@@ -1,8 +1,5 @@
 
-
-import java.util.Vector;
-import java.util.List;
-import java.util.Enumeration;
+import java.util.*;
 
 public class Individual {
 
@@ -18,7 +15,7 @@ public class Individual {
 
         public Node searchNode(int a) {
             for(Node n : this.children) {
-                if (n.id == a);
+                if (n.id == a)
                     return n;
             }
             return null;    
@@ -30,9 +27,9 @@ public class Individual {
         }
 
         public Node addChildren(int newChildId) {
-        	Node newChild = new Node(newChildId, this);
+        	Node newChild = new Node(newChildId);
         	this.children.add(newChild);
-            newChildId.parent = this;
+            newChild.parent = this;
             return newChild;
         }
 
@@ -40,8 +37,8 @@ public class Individual {
         	return children.get(children.indexOf(childId));
         }
 
-        public void removeChild (int childId) {
-        	children.remove(children.indexOf(childId));
+        public void removeChild (Node child) {
+        	children.remove(child);
         }
 
         public void dump(int i) {
@@ -59,26 +56,50 @@ public class Individual {
 	public Node root;
     public Vector<Node> quickMachineAccess;
     public Vector<Node> quickProcessAccess;
+    public Vector<Node> quickServiceAccess;
     public int changeCost;
     public Random rand; 
     public boolean isViable;
-
+    public Vector<Integer> processMovingCosts; 
+    public Vector<Integer> initialAssignment;
+    public Vector< Integer > serviceMinSpreads;
+    public Vector< Vector<Integer> > machineCapacities;
+    public Vector< Vector<Integer> > processRequirements;
+    public Vector< Vector<Integer> > softMachineCapacities;
+    public int numProcesses;    
+    public int numResources;
+    public int numServices;
+    public int numMachines;
+    public float currentFit;
     /*"inverted" tree, with all the process*/
-    public Individual () {
-        isViable = false;
-    }
 
     public Individual(Vector< Integer > machineLocations , Vector< Integer > processServices , 
-        int numLocations, int numServices, int numMachines, int numProcesses) {
+        int numLocations, int numServices, int numMachines, int numProcesses, 
+        Vector<Integer> processMovingCosts, Vector<Integer> initialAssignment,
+        Vector< Integer > serviceMinSpreads, int numResources, Vector< Vector<Integer> > machineCapacities, 
+                 Vector< Vector<Integer> > processRequirements,  Vector< Vector<Integer> > softMachineCapacities) {
+
+        this.isViable = false;
+        this.numProcesses = numProcesses;
+        this.initialAssignment = initialAssignment;
+        this.processMovingCosts = processMovingCosts;
+        this.serviceMinSpreads = serviceMinSpreads;
+        this.numResources = numResources;
+        this.numServices = numServices;
+        this.processRequirements = processRequirements;
+        this.machineCapacities = machineCapacities;
+        this.softMachineCapacities = softMachineCapacities;
+        this.numMachines = numMachines;
 
         this.quickMachineAccess = new Vector<Node>(numMachines);
         this.quickProcessAccess = new Vector<Node>(numProcesses);
-        this.root = new Node(0, this.root);
+        this.quickServiceAccess = new Vector<Node>(numServices);
+        this.root = new Node(0);
         rand = new Random();
 
         int i = 0;
         while (i<= numLocations) {
-            Node child = new Node(i, root);
+            Node child = new Node(i);
             root.addChildren(child);
             i++;    
         }
@@ -87,59 +108,133 @@ public class Individual {
         int machineId = 0;
         while (e.hasMoreElements()) {
             int locationId = (int) e.nextElement();
-            System.o
-            ut.print(locationId);
             Node location = root.searchNode(locationId);
-            Node machine = new Node(machineId, location);
+            Node machine = new Node(machineId);
             location.addChildren(machine);
             quickMachineAccess.add(machineId, machine);
             machineId++;    
         }
-    }
 
-
-    public void initializer(Vector< Integer > initialAssignment, int numProcesses) {
-        this.isViable = true;
-        int i = 0;
-        while (i < numProcesses) {
-            Node newNode = Node(i);
+        i = 0;
+        while (i < this.numProcesses) {
+            Node newNode = new Node(i);
             quickProcessAccess.add(i, newNode);
-            quickMachineAccess.get(initialAssignment.get(i)).addChildren(newNode);
+            i++;
+        }
+
+        i = 0;
+        while (i < this.numServices) {
+            Node newNode = new Node(i);
+            quickServiceAccess.add(i, newNode);
+            i++;
+        }
+
+        Enumeration<Integer> t= processServices.elements();
+        int processId = 0;
+        while (t.hasMoreElements()) {
+            int serviceId = (int) t.nextElement();
+            quickServiceAccess.get(serviceId).addChildren(quickProcessAccess.get(processId));
+            processId++;    
         }
     }
 
-    public void dump() {
-        root.dump(0);
+
+    public void initializer(Vector< Integer > assignment) {
+        
+        Enumeration<Integer> e= assignment.elements();
+        int i = 0;
+        this.changeCost = 0;
+        while (e.hasMoreElements()) {
+            Node process = quickProcessAccess.get(i);
+            Node machine = quickMachineAccess.get(e.nextElement());
+            machine.addChildren(process);
+
+            if (machine.id != this.initialAssignment.get(process.id))
+                this.changeCost += this.processMovingCosts.get(i);
+            i++;    
+        }
     }
 
-    public boolean isViable() {
-        return isViable;
+    public void firstInit() {
+        this.initializer(initialAssignment);
     }
 
-    public int calculateFit( Vector< Vector<Integer> > machineCapacities, 
-                Vector< Vector<Integer> > softMachineCapacities,
-                Vector< Vector<Integer> > processRequirements) {
-
-        int totalCost = this.changeCost;
-        return 0;
+    public Node getGene(int i) {
+        return quickProcessAccess.get(i);
     }
 
-    public void mutate(Vector<Integer> processMovingCosts, int mutationProb, 
-                Vector<Integer> initialAssignment, int numProcesses) {
+
+    public double fitness () {
+        //CHECKS IF IS VIABLE AND RETURNS FITNESS:
+        //Biggest penalty
+        double result = Double.POSITIVE_INFINITY;
+        double penalties = 0;
+        
+        // Check min spread and Service conflict constraints
+        for(Node s : this.quickServiceAccess) {
+
+                HashSet<Integer> noDupSet = new HashSet<Integer>();
+                HashSet<Integer> serviceConflict = new HashSet<Integer>();
+                int numberOfMachines = 0;
+
+                for (Node p: s.children) {
+                    serviceConflict.add(p.parent.id);
+                    noDupSet.add(p.parent.parent.id);
+                    numberOfMachines ++;
+                }
+
+                int serviceSpread = noDupSet.size();
+                int differnteMachines = serviceConflict.size();
+                if (serviceSpread <  this.serviceMinSpreads.get(s.id) || differnteMachines < numberOfMachines)
+                    return result;
+
+        }
+
+        // Check hard Machine Requirments and calculates penalties
+        for(Node s : this.quickMachineAccess) {
+
+            Vector<Integer> total = new Vector<Integer>();
+            for (int t = 0; t!= numResources; t++)
+                total.add(0);
+
+            for(Node p : s.children) {
+                 for(int z = 0; z!= numResources; z++) {
+                    total.set(z, (total.get(z) + this.processRequirements.get(p.id).get(z)));
+                }
+
+            for (int t = 0; t!= numResources; t++) {
+                if (total.get(t) > machineCapacities.get(s.id).get(t))
+                    return result;
+                else {
+                    if(total.get(t) > softMachineCapacities.get(s.id).get(t))
+                        penalties += total.get(t) - softMachineCapacities.get(s.id).get(t);
+                }
+
+            }
+            }
+        }
+        currentFit = (float) penalties + this.changeCost;
+        return this.currentFit;
+    }
+
+
+    public void mutate(int mutationProb) {
 
         // Mutation is a random change form one machine to anoter.
         boolean val;
         Enumeration<Node> e= quickProcessAccess.elements();
 
         while (e.hasMoreElements()) {
-            val = rand.nextInt(mutationProb)==0;
-            if (val == True) {
-                toMachine = rand(numProcesses);
-                this.changeGene(e.id, toMachine);
-                if (toMachine != initialAssignment.get(e.id))
-                    this.changeCost = processMovingCosts.get(e.id);
-                else
-                    this.changeCost = 0;
+            val = this.rand.nextInt(mutationProb)==0;
+            Node a = e.nextElement();
+            int previousMachine = a.parent.id;
+            if (val) {
+                int toMachine = this.rand.nextInt(this.numMachines);
+                this.changeGene(a.id, toMachine);
+                if (this.fitness() == Double.POSITIVE_INFINITY) {
+                    this.changeGene(a.id, previousMachine);
+                    // if infeasible, rollback
+                }
             }
             else 
                 continue;
@@ -150,44 +245,61 @@ public class Individual {
         Node processNode = quickProcessAccess.get(process);
         Node destinationMachineNode = quickMachineAccess.get(machine);
 
+        if (processNode.parent.id == this.initialAssignment.get(process) && 
+                machine != this.initialAssignment.get(process)) {
+                // IF CURRENT INITIAL ASSIGNMENT
+                this.changeCost += this.processMovingCosts.get(process); 
+            }
+        else  {
+            if (processNode.parent.id != this.initialAssignment.get(process) && 
+                machine == this.initialAssignment.get(process)) {
+                this.changeCost -= this.processMovingCosts.get(process);
+            } 
+        }
+            
         processNode.parent.removeChild(processNode);
-        destinationMachineNode.destinationMachineNode.addChildren(processNode);
+        destinationMachineNode.addChildren(processNode);
     }
 
-    public void uniformlyCrossOver(Individual a, Individual b, int probability) {
+
+    public void uniformlyCrossOver(Individual mate, int probability) {
         Enumeration<Node> e= quickProcessAccess.elements();
+        boolean val ;
         while (e.hasMoreElements()) {
-            val = rand.nextInt(probability)==0;
-            if (val == True) {
-                // Exhange genes, and update change cost
+            Node a = e.nextElement();
+
+            val = this.rand.nextInt(probability)==0;
+            if (val) {
+                Node aGene = this.getGene(a.id);
+                Node bGene = mate.getGene(a.id);
+                
+                int aGeneMachine = aGene.parent.id;
+                int bGeneMachine = bGene.parent.id;
+
+                this.changeGene(a.id , bGeneMachine);
+                mate.changeGene(a.id , aGeneMachine);
+
+                if (this.fitness() == Double.POSITIVE_INFINITY || mate.fitness() == Double.POSITIVE_INFINITY) {
+                    this.changeGene(a.id , aGeneMachine);
+                    mate.changeGene(a.id , bGeneMachine);
+                    // if infeasible, rollback
+                }
             }
             else 
                 continue;
         }
-
     }
 
-    public Individual clone(int numServices, int numMachines) {
-        Node newRoot = new Node(0);
-        Vector<Node>
-        qM = new Vector<Node>(numMachines);
-        qP = new Vector<Node>(numProcesses);
+    public float getCurrentFitness() {
+        return currentFit;
+    }
 
-        for(Node location : root.children) {
-            Node locationCopy = new Node(location.id);
-            root.addChildren(locationCopy);
+    public Vector<Integer> toConfiguration() {
+        Vector<Integer> result = new Vector<Integer>();
 
-                for(Node server : location.children) {
-                    Node machineCopy = new Node(server.id);
-                    locationCopy.addChildren(machineCopy);
-                    qM.add(machineCopy.id, machineCopy);
-
-                    for(Node proc : server.children) {
-                        Node processCopy = new Node(proc.id);
-                        machineCopy.addChildren(processCopy);
-                        qP.add(processCopy.id, machineCopy);
-                    }
-                }
+        for(Node n : this.quickProcessAccess) {
+                result.add(n.id, n.parent.id);
             }
+        return result;
     }
 }
