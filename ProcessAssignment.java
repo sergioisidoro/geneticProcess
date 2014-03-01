@@ -11,6 +11,10 @@
 
 import java.io.*;
 import java.util.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 
 class ProcessAssignment  {
@@ -287,11 +291,28 @@ class ProcessAssignment  {
 	    //dumpAssignment(initialAssignment);
 	    
 	    
-	   	// GENETIC ALGORITHM STARTS GERE
+	    try { 
+
+	    	File file = new File(args[2]);
+ 
+			// if file doesnt exists, then create it
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+
+
+	    	PrintWriter writer = new PrintWriter(args[2], "UTF-8");
 	    
+
+	   	// GENETIC ALGORITHM STARTS GERE
+	    //################//################//################//################
 	    //################ PARAMETERS ###############
+	   	//################//################//################//################
+
 	    int popSize = 50;
-	    int crossOverRate = 10;
+	    // half probability of mating
+	    int crossOverRate = 1;
+	    // 1/3 prob of a gene being exchanged
 	    int recombinationRate = 10;
 	    int maxPlateu = 1000;
 
@@ -314,7 +335,6 @@ class ProcessAssignment  {
         		machineCapacities, processRequirements, softMachineCapacities);
 	    	a.firstInit();
 	    	ecosystem.add(i,a);
-	    	System.out.println(a.fitness());
 	    	}
 
 
@@ -325,15 +345,15 @@ class ProcessAssignment  {
         		machineCapacities, processRequirements, softMachineCapacities);
 	    	a.firstInit();
 	    	cemitery.add(i,a);
-	    	System.out.println(a.isViable());
 	    	}
 
 
     	
 	    minFitness = ecosystem.get(1).fitness();
-	    System.out.println("Starting Fit:");
-	    System.out.println(minFitness);
-
+	    //System.out.println("Starting Fit:");
+	    //System.out.println(minFitness);
+	    //System.out.println("ASERTING ");
+	    //System.out.println(ecosystem.get(0).toConfiguration().equals(initialAssignment));
 
 	    // Mutations of genes only occur if they are feaseble - Not true mutation, kind of a hack.
     	// Mutation occurs with prob 1/numProcesses
@@ -353,7 +373,7 @@ class ProcessAssignment  {
 	    System.out.println("STARTING");
 	    for(Individual subject : ecosystem) {
                 //System.out.println(subject.changeCost);
-                System.out.println(subject.fitness());
+                subject.fitness();
             }
 
 
@@ -369,7 +389,13 @@ class ProcessAssignment  {
 	    		minFitness = ecosystem.get(0).currentFit;
 	    		bestConfiguration = ecosystem.get(0).toConfiguration();
 	    		plateuCount = 0;
-	    		System.out.println("New Min Found " + Double.toString(minFitness));
+	    		for (int i: bestConfiguration) {
+	    			writer.print(i);
+	    			writer.print(" ");
+	    		}
+	    		writer.println("");
+	    		writer.flush();
+	    		//System.out.println("New Min Found " + Double.toString(minFitness));
 
 	    	}	else {
 	    		plateuCount++;
@@ -377,24 +403,29 @@ class ProcessAssignment  {
 	    			converegd = true;
 	    	}
 
-	    	System.out.println("------------------");
 	    	System.out.println("Generation " + Integer.toString(gen));
 	    	System.out.println(minFitness);
-	    	System.out.println("------------------");
 	    	
 	    	//SELECTION PHASE
 	    	// RANK SELECTION
 	    	Collections.sort(ecosystem, new fitnessComparator());
 	    	RandomSelector selector = new RandomSelector(ecosystem, popSize);
 	    	
-	    	// limbo = ecosystem;
-	    	// ecosystem = cemitery;
-	    	// cemitery = limbo;
+	    	// NOTES TO TEACHE - THERE SEEMS TO BE SOMETHING WRONG HERE ... 
 
-	    	// // Picks elements from the ecosystem porportionally to its fitness
-	    	// for (int i=0; i<=popSize; i++) {
-	    	// 	ecosystem.get(i).initializer(selector.getRandom().toConfiguration());
-	    	// }
+	    	limbo = ecosystem;
+	    	ecosystem = cemitery;
+	    	cemitery = limbo;
+
+	    	//Picks elements from the ecosystem porportionally to its fitness
+	    	 for (int i=0; i<=popSize; i++) {
+	    	 	Vector<Integer> newConfiguration = selector.getRandom().toConfiguration();
+	    	 	
+        		Individual b = ecosystem.get(i);
+  				b.reset();
+  				b.initializer(newConfiguration);
+  				
+	    	 }
 
 	    	// CROSSING PHASE
 	    	
@@ -412,10 +443,16 @@ class ProcessAssignment  {
             
             
             for(Individual subject : ecosystem) {
-                System.out.println(subject.fitness());
+                //System.out.println(subject.fitness());
+                subject.fitness();
             }
             gen++;
 	    }
+	    writer.close();
+	    }
+	    catch (IOException e) {
+			e.printStackTrace();
+		}
 		}
     }
 }

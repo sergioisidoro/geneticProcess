@@ -140,6 +140,11 @@ public class Individual {
         }
     }
 
+    public void reset() {
+        for (Node n: quickProcessAccess) {
+            n.parent.removeChild(n);
+        }
+    }
 
     public void initializer(Vector< Integer > assignment) {
         
@@ -328,10 +333,10 @@ public class Individual {
     }
 
     public Vector<Integer> toConfiguration() {
-        Vector<Integer> result = new Vector<Integer>();
+        Vector<Integer> result = new Vector<Integer>(numProcesses);
 
         for(Node n : this.quickProcessAccess) {
-                result.add(n.id, n.parent.id);
+                result.add(n.id, new Integer(n.parent.id));
             }
         return result;
     }
