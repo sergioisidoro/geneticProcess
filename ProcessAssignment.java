@@ -23,6 +23,38 @@ class ProcessAssignment  {
         }
     }
 
+
+    public static class RandomSelector {
+	    // Code from: http://stackoverflow.com/questions/9330394/how-to-pick-an-item-by-its-probability
+	    List<Individual> items ;
+	    Random rand = new Random();
+	    int totalSum = 0;
+
+	    RandomSelector(List<Individual> a, int maxRank) {
+	    	this.items = a;
+	    	int i = maxRank+1;
+        	for(Individual item : items) {
+        		item.rank = maxRank;
+           		totalSum = totalSum + (item.rank)*2;
+           		maxRank --;
+        	}
+    }
+
+    public Individual getRandom() {
+
+        int index = rand.nextInt(totalSum);
+        int sum = 0;
+        int j=0;
+        while(index > sum) {
+             sum = sum + (items.get(j).rank)*2;
+             j++;
+        }
+        if (j<=0)
+        	j=1;
+        return items.get(j-1);
+    }
+}
+
     // number of resources (N_R)
     static int numResources = 0;
 
@@ -257,51 +289,58 @@ class ProcessAssignment  {
 	    
 	   	// GENETIC ALGORITHM STARTS GERE
 	    
-	    //################ PARAMETERS
-	    int popSize = 10;
-	    int crossOverRate = 5;
-	    int recombinationRate = 1;
+	    //################ PARAMETERS ###############
+	    int popSize = 50;
+	    int crossOverRate = 10;
+	    int recombinationRate = 10;
 	    int maxPlateu = 1000;
 
 	    Vector<Individual> ecosystem = new Vector<Individual>();
 	    //Cemitery for "recycling individuals"
 	    Vector<Individual> cemitery = new Vector<Individual>();
-
+	    Vector<Individual> limbo;
 
 	    // CREATE INDIVIDUAL POOL:
 	    
 
 	    double minFitness;
 
-
-	    Individual proto = new Individual(machineLocations ,processServices , 
-        		numLocations, numServices, numMachines, numProcesses, 
-        		processMovingCosts, initialAssignment, serviceMinSpreads, numResources,
-        		machineCapacities, processRequirements, softMachineCapacities);
-	    proto.firstInit();
-	    minFitness = proto.fitness();
-	    ecosystem.add(0,proto);
-	    System.out.println("Starting Fit:");
-	    System.out.println(minFitness);
-
-
 	    // Adds some genetic changes to the forst assignmet
 
-	    for (int i=1; i<=popSize; i++) {
+	    for (int i=0; i<=popSize; i++) {
 	    	Individual a = new Individual(machineLocations ,processServices , 
         		numLocations, numServices, numMachines, numProcesses, 
         		processMovingCosts, initialAssignment, serviceMinSpreads, numResources,
         		machineCapacities, processRequirements, softMachineCapacities);
-	    	
 	    	a.firstInit();
-	    	// Mutations of genes only occur if they are feaseble - Not true mutation, kind of a hack.
-	    	// Mutation occurs with prob 1/numProcesses
-	    	a.mutate(numProcesses);
 	    	ecosystem.add(i,a);
 	    	System.out.println(a.fitness());
 	    	}
 
-	    System.out.println(ecosystem.toString());
+
+	    for (int i=0; i<=popSize; i++) {
+	    	Individual a = new Individual(machineLocations ,processServices , 
+        		numLocations, numServices, numMachines, numProcesses, 
+        		processMovingCosts, initialAssignment, serviceMinSpreads, numResources,
+        		machineCapacities, processRequirements, softMachineCapacities);
+	    	a.firstInit();
+	    	cemitery.add(i,a);
+	    	System.out.println(a.isViable());
+	    	}
+
+
+    	
+	    minFitness = ecosystem.get(1).fitness();
+	    System.out.println("Starting Fit:");
+	    System.out.println(minFitness);
+
+
+	    // Mutations of genes only occur if they are feaseble - Not true mutation, kind of a hack.
+    	// Mutation occurs with prob 1/numProcesses
+	   	for (Individual indiv : ecosystem) {
+	   		indiv.mutate(numProcesses);
+	   	}
+    	
 	    Collections.sort(ecosystem, new fitnessComparator());
 	    int plateuCount = 0; //Numbere of times where best result has not been beaten
 	    
@@ -342,10 +381,20 @@ class ProcessAssignment  {
 	    	System.out.println("Generation " + Integer.toString(gen));
 	    	System.out.println(minFitness);
 	    	System.out.println("------------------");
-	    	// SELECTION PHASE
-	    	// replacing the worst fit by the best fit.
+	    	
+	    	//SELECTION PHASE
+	    	// RANK SELECTION
+	    	Collections.sort(ecosystem, new fitnessComparator());
+	    	RandomSelector selector = new RandomSelector(ecosystem, popSize);
+	    	
+	    	// limbo = ecosystem;
+	    	// ecosystem = cemitery;
+	    	// cemitery = limbo;
 
-	    	Individual weakestLink = ecosystem.get(popSize);
+	    	// // Picks elements from the ecosystem porportionally to its fitness
+	    	// for (int i=0; i<=popSize; i++) {
+	    	// 	ecosystem.get(i).initializer(selector.getRandom().toConfiguration());
+	    	// }
 
 	    	// CROSSING PHASE
 	    	
@@ -360,10 +409,9 @@ class ProcessAssignment  {
                 subject.mutate(numProcesses);
             }
 
-            Collections.sort(ecosystem, new fitnessComparator());
+            
             
             for(Individual subject : ecosystem) {
-                //System.out.println(subject.changeCost);
                 System.out.println(subject.fitness());
             }
             gen++;

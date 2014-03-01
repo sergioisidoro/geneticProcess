@@ -66,11 +66,13 @@ public class Individual {
     public Vector< Vector<Integer> > machineCapacities;
     public Vector< Vector<Integer> > processRequirements;
     public Vector< Vector<Integer> > softMachineCapacities;
+    public Vector< Integer > processServices ;
     public int numProcesses;    
     public int numResources;
     public int numServices;
     public int numMachines;
     public float currentFit;
+    public int rank;
     /*"inverted" tree, with all the process*/
 
     public Individual(Vector< Integer > machineLocations , Vector< Integer > processServices , 
@@ -90,7 +92,7 @@ public class Individual {
         this.machineCapacities = machineCapacities;
         this.softMachineCapacities = softMachineCapacities;
         this.numMachines = numMachines;
-
+        this.processServices = processServices;
         this.quickMachineAccess = new Vector<Node>(numMachines);
         this.quickProcessAccess = new Vector<Node>(numProcesses);
         this.quickServiceAccess = new Vector<Node>(numServices);
@@ -163,6 +165,58 @@ public class Individual {
         return quickProcessAccess.get(i);
     }
 
+    public boolean checkSpreadAndColision(Node s) {
+
+        HashSet<Integer> noDupSet = new HashSet<Integer>();
+        HashSet<Integer> serviceConflict = new HashSet<Integer>();
+        int numberOfMachines = 0;
+
+        for (Node p: s.children) {
+            serviceConflict.add(p.parent.id);
+            noDupSet.add(p.parent.parent.id);
+            numberOfMachines ++;
+        }
+
+        int serviceSpread = noDupSet.size();
+        int differnteMachines = serviceConflict.size();
+        if (serviceSpread <  this.serviceMinSpreads.get(s.id) || differnteMachines < numberOfMachines)
+            return false;
+        else
+            return true;
+    }
+
+    public boolean checkMachineLoad(Node m) {
+         Vector<Integer> total = new Vector<Integer>();
+            for (int t = 0; t!= numResources; t++)
+                total.add(0);
+
+            for(Node p : m.children) {
+                 for(int z = 0; z!= numResources; z++) {
+                    total.set(z, (total.get(z) + this.processRequirements.get(p.id).get(z)));
+                    }
+                }
+
+            for (int t = 0; t!= numResources; t++) {
+                 if (total.get(t) > machineCapacities.get(m.id).get(t))
+                    return false;
+            }
+            return true;
+    }
+
+    public boolean isViable() {
+        for(Node s : this.quickServiceAccess) {
+            if (!checkSpreadAndColision(s)) {
+                return false;
+            }
+        }
+
+        for(Node s : this.quickMachineAccess) { 
+            if (!checkMachineLoad(s)) {
+                return false;
+            }
+        }
+        return true;    
+    }
 
     public double fitness () {
         //CHECKS IF IS VIABLE AND RETURNS FITNESS:
@@ -170,26 +224,6 @@ public class Individual {
         double result = Double.POSITIVE_INFINITY;
         double penalties = 0;
         
-        // Check min spread and Service conflict constraints
-        for(Node s : this.quickServiceAccess) {
-
-                HashSet<Integer> noDupSet = new HashSet<Integer>();
-                HashSet<Integer> serviceConflict = new HashSet<Integer>();
-                int numberOfMachines = 0;
-
-                for (Node p: s.children) {
-                    serviceConflict.add(p.parent.id);
-                    noDupSet.add(p.parent.parent.id);
-                    numberOfMachines ++;
-                }
-
-                int serviceSpread = noDupSet.size();
-                int differnteMachines = serviceConflict.size();
-                if (serviceSpread <  this.serviceMinSpreads.get(s.id) || differnteMachines < numberOfMachines)
-                    return result;
-
-        }
-
         // Check hard Machine Requirments and calculates penalties
         for(Node s : this.quickMachineAccess) {
 
@@ -201,17 +235,13 @@ public class Individual {
                  for(int z = 0; z!= numResources; z++) {
                     total.set(z, (total.get(z) + this.processRequirements.get(p.id).get(z)));
                 }
+            }
 
             for (int t = 0; t!= numResources; t++) {
-                if (total.get(t) > machineCapacities.get(s.id).get(t))
-                    return result;
-                else {
-                    if(total.get(t) > softMachineCapacities.get(s.id).get(t))
-                        penalties += total.get(t) - softMachineCapacities.get(s.id).get(t);
+                if(total.get(t) > softMachineCapacities.get(s.id).get(t))
+                    penalties += total.get(t) - softMachineCapacities.get(s.id).get(t);
                 }
-
-            }
-            }
+        
         }
         currentFit = (float) penalties + this.changeCost;
         return this.currentFit;
@@ -231,7 +261,7 @@ public class Individual {
             if (val) {
                 int toMachine = this.rand.nextInt(this.numMachines);
                 this.changeGene(a.id, toMachine);
-                if (this.fitness() == Double.POSITIVE_INFINITY) {
+                if (!checkMachineLoad(quickMachineAccess.get(toMachine)) || !checkSpreadAndColision(quickServiceAccess.get(processServices.get(a.id)))) {
                     this.changeGene(a.id, previousMachine);
                     // if infeasible, rollback
                 }
@@ -279,13 +309,16 @@ public class Individual {
                 this.changeGene(a.id , bGeneMachine);
                 mate.changeGene(a.id , aGeneMachine);
 
-                if (this.fitness() == Double.POSITIVE_INFINITY || mate.fitness() == Double.POSITIVE_INFINITY) {
+                if (!this.checkMachineLoad(this.quickMachineAccess.get(bGeneMachine)) || 
+                    !mate.checkMachineLoad(mate.quickMachineAccess.get(aGeneMachine)) ||
+                    !this.checkSpreadAndColision(this.quickServiceAccess.get(this.processServices.get(a.id))) ||
+                    !mate.checkSpreadAndColision(mate.quickServiceAccess.get(this.processServices.get(a.id))) ) {
                     this.changeGene(a.id , aGeneMachine);
                     mate.changeGene(a.id , bGeneMachine);
                     // if infeasible, rollback
                 }
             }
-            else 
+            else    
                 continue;
         }
     }
